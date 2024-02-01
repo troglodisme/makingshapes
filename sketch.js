@@ -25,10 +25,11 @@ function setup() {
 
   speedSlider = createSlider(0, 5, 0.1, 0.1); // Min, Max, Default, Step
   speedSlider.position(220, 500);
+
+
 }
 
 function draw() {
-  background(255);
 
   image3Speed = speedSlider.value(); // Get the current value of the slider
 
