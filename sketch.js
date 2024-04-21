@@ -126,20 +126,18 @@ function displayStatus() {
   text(`Dry track (z)`, 10, 520);
 
   fill(fx.isPlaying() ? 'white' : 'grey');
-  text(`FX track (x)`, 180, 520);
+  text(`FX track/clouds (x)`, 180, 520);
 
   let anyXVisible = Object.values(xStatus).some(status => status);
   fill(anyXVisible ? 'white' : 'grey');
-  text(`Moon (m)`, 340, 520);
+  text(`Moon (m)`, 400, 520);
 
   // text(`Moon (m): ${anyXVisible ? 'on' : 'off'}`, 430, 520);
 
   let lightsOn = Object.keys(lightStatus).filter(index => lightStatus[index]).join(', ');
   fill(lightsOn.length > 0 ? 'white' : 'grey');
-  text(`Windows (l/h)`, 480, 520);
+  text(`Windows (l / h)`, 520, 520);
   // text(`Windows (l/h): ${lightsOn}`, 500, 520);
-
-  text("restart (cmd+r)", 650, 520);
 
 }
 
