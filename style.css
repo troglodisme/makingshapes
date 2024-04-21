@@ -1,10 +1,17 @@
 html, body {
-    margin: 0;
-    padding: 0;
-    background: rgb(81, 81, 81);
+  height: 100%;               /* Make sure the html and body cover the full height of the viewport */
+  margin: 0;
+  padding: 0;
+  background: rgb(0, 0, 0);   /* Black background as specified */
+  display: flex;              /* Enable flexbox */
+  justify-content: center;    /* Center horizontally */
+  align-items: center;        /* Center vertically */
+}
 
-  }
-  canvas {
-    display: block;
-  }
-  
+canvas {
+  display: block;
+  border-radius: 10px;
+  /* Add any specific width or height you need for the canvas */
+  width: 300px;               /* Example width */
+  height: 150px;              /* Example height */
+}
