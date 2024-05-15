@@ -11,7 +11,7 @@ let movingAlpha = 0; // Initialize alpha for moving images at 0 (invisible)
 // Bird animation variables
 let birdFrames = [];
 let birdIndex = 0;
-let birdX = 500; // Starting position off the screen to the right
+let birdX = 900; // Starting position off the screen to the right
 let birdY = 250; // Vertical position of the bird
 let birdSpeed = 0.5; // Speed of the bird moving left
 let birdAnimationSpeed = 5; // Controls the speed of bird wing animation
