@@ -20,6 +20,24 @@ let birdAnimationCounter = 0; // Counter to control bird frame change
 // Sound objects
 let dry, fx;
 
+// Slider variables
+let sliders = [];
+let sliderCCs = []; // Array to store the CC number for each slider
+let showSliders = true;
+
+// MIDI variables
+let midiAccess;
+let midiInput;
+let midiOutputs = [];
+let midiCCs = [1, 2, 3, 4, 5]; // MIDI CC numbers for each slider
+
+// UI elements
+let midiInputSelect;
+let ccSelects = [];
+
+// Additional alpha value for X images
+let xAlpha = 255;
+
 function preload() {
   dry = loadSound('audio/dry.wav');
   fx = loadSound('audio/fx.wav');
@@ -76,6 +94,31 @@ function setup() {
   dry.pause();
   fx.pause();
   toggleXImages();
+
+  // Create sliders and CC selection dropdowns
+  for (let i = 0; i < 5; i++) { // Changed to 5 to include the new slider
+    let slider = createSlider(0, 255, 127);
+    slider.position(10 + i * 160, 80); // Adjusted to fit 5 sliders
+    sliders.push(slider);
+
+    let ccSelect = createSelect();
+    ccSelect.position(10 + i * 160, 100);
+    for (let j = 0; j < 128; j++) {
+      ccSelect.option(`CC ${j}`, j);
+    }
+    ccSelect.selected(midiCCs[i]);
+    ccSelect.changed(() => updateSliderCC(i, ccSelect.value()));
+    ccSelects.push(ccSelect);
+  }
+
+  // Create MIDI input selection dropdown
+  midiInputSelect = createSelect();
+  midiInputSelect.position(10, 30);
+  midiInputSelect.option('Select MIDI Input');
+  midiInputSelect.changed(() => selectMIDIInput(midiInputSelect.value()));
+
+  // Setup MIDI
+  navigator.requestMIDIAccess().then(onMIDISuccess, onMIDIFailure);
 }
 
 function draw() {
@@ -87,7 +130,9 @@ function draw() {
     } else if (item.type === 'L' && lightStatus[index]) {
       image(item.img, 0, 0);
     } else if (item.type === 'X' && xStatus[index]) {
+      tint(255, xAlpha); // Apply alpha to X images
       image(item.img, 0, 0);
+      noTint();
     } else if (item.type === 'M') {
       tint(255, movingAlpha); // Apply fading effect
       movingPositions[index] += speeds[index] * globalSpeedMultiplier;
@@ -108,6 +153,22 @@ function draw() {
   birdX -= birdSpeed;
   if (birdX < -birdFrames[birdIndex].width) {
     birdX = width;
+  }
+
+  // Use sliders to control animation parameters
+  globalSpeedMultiplier = map(sliders[0].value(), 0, 255, 0.05, 1.0); // Control speed of moving images
+  movingAlpha = sliders[1].value(); // Control alpha (visibility) of moving images
+  birdSpeed = map(sliders[2].value(), 0, 255, 0.1, 2.0); // Control bird speed
+  birdY = map(sliders[3].value(), 0, 255, 0, height); // Control bird vertical position
+  xAlpha = sliders[4].value(); // Control alpha (visibility) of X images
+
+  // Display sliders
+  if (showSliders) {
+    sliders.forEach(slider => slider.show());
+    ccSelects.forEach(select => select.show());
+  } else {
+    sliders.forEach(slider => slider.hide());
+    ccSelects.forEach(select => select.hide());
   }
 
   // UI display logic
@@ -144,6 +205,8 @@ function keyPressed() {
     }
   } else if (key >= '1' && key <= '5') {
     globalSpeedMultiplier = parseFloat(key) * 0.2;
+  } else if (key === 't') { // Toggle sliders visibility
+    showSliders = !showSliders;
   }
 }
 
@@ -163,18 +226,18 @@ function displayStatus() {
   text(`Dry track (z)`, 10, 520);
 
   fill(fx.isPlaying() ? 'white' : 'grey');
-  text(`FX track/clouds (x)`, 180, 520);
+  text(`FX track (x)`, 180, 520);
 
   let anyXVisible = Object.values(xStatus).some(status => status);
   fill(anyXVisible ? 'white' : 'grey');
-  text(`Moon (m)`, 400, 520);
-
-  // text(`Moon (m): ${anyXVisible ? 'on' : 'off'}`, 430, 520);
+  text(`Moon (m)`, 340, 520);
 
   let lightsOn = Object.keys(lightStatus).filter(index => lightStatus[index]).join(', ');
   fill(lightsOn.length > 0 ? 'white' : 'grey');
-  text(`Windows (l / h)`, 520, 520);
-  // text(`Windows (l/h): ${lightsOn}`, 500, 520);
+  text(`Windows (l / h)`, 480, 520);
+
+  text(`Settings (t)`, 660, 520);
+
 }
 
 function toggleXImages() {
@@ -204,4 +267,53 @@ function turnAllLightsOff() {
   Object.keys(lightStatus).forEach(index => {
     lightStatus[index] = false;
   });
+}
+
+// Web MIDI setup
+function onMIDISuccess(access) {
+  midiAccess = access;
+
+  let inputs = midiAccess.inputs.values();
+  for (let input of inputs) {
+    midiInputSelect.option(input.name, input.id);
+  }
+
+  let outputs = midiAccess.outputs.values();
+  for (let output of outputs) {
+    midiOutputs.push(output);
+  }
+}
+
+function onMIDIFailure() {
+  console.log('Could not access MIDI devices.');
+}
+
+function selectMIDIInput(inputId) {
+  if (midiInput) {
+    midiInput.onmidimessage = null;
+  }
+
+  let inputs = midiAccess.inputs;
+  midiInput = inputs.get(inputId);
+  if (midiInput) {
+    midiInput.onmidimessage = handleMIDIMessage;
+  }
+}
+
+function handleMIDIMessage(message) {
+  let data = message.data;
+  let command = data[0];
+  let controller = data[1];
+  let value = data[2];
+
+  if (command === 176) { // MIDI CC message
+    let sliderIndex = midiCCs.indexOf(parseInt(controller));
+    if (sliderIndex !== -1) {
+      sliders[sliderIndex].value(map(value, 0, 127, 0, 255));
+    }
+  }
+}
+
+function updateSliderCC(index, cc) {
+  midiCCs[index] = parseInt(cc);
 }
