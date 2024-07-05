@@ -1,0 +1,14 @@
+
+
+→Phase 1:
+- ADD MIDI Notes
+- Connect slider to images behaviour
+
+→Phase 2:
+- Make physical prototype
+
+→Phase 3:
+- Make visualisations of physical device
+- Make looks like model
+
+- Built in speaker (could be on the back)
