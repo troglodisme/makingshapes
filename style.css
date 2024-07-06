@@ -1,19 +1,31 @@
 html, body {
-  height: 100%;               /* Make sure the html and body cover the full height of the viewport */
+  height: 100%;               
   margin: 0;
   padding: 0;
-  background: rgb(0, 0, 0);   /* Black background as specified */
-  display: flex;              /* Enable flexbox */
-  justify-content: center;    /* Center horizontally */
-  align-items: center;        /* Center vertically */
+  background: rgb(47, 47, 47);  
+  /* display: flex;               */
+  /* justify-content: center;     */
+  /* align-items: center;         */
 }
 
 canvas {
   display: block;
   border-radius: 10px;
-  /* Add any specific width or height you need for the canvas */
-  width: 300px;               /* Example width */
+  width: 500px;               /* Example width */
   height: 150px;              /* Example height */
+}
 
+.slider {
+  width: 150px;
+  margin: 5px;
+}
 
+.cc-select {
+  margin: 5px;
+}
+
+.slider-description {
+  font-size: 14px;
+  color: white;
+  margin: 5px;
 }
