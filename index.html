@@ -1,20 +1,22 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <script src="p5.js"></script>
-    <script src="p5.sound.min.js"></script>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-      <!-- webmidi package -->
-    <script src="https://cdn.jsdelivr.net/npm/webmidi@next/dist/iife/webmidi.iife.js"></script> 
-    <script src="https://unpkg.com/ml5@0.20.0-alpha.3/dist/ml5.js"></script>
+    <title>Sketch</title>
 
     <link rel="stylesheet" type="text/css" href="style.css">
-    <meta charset="utf-8" />
 
+    <script src="libraries/p5.js"></script>
+    <script src="libraries/p5.sound.min.js"></script>
   </head>
+
   <body>
-    <main>
-    </main>
+    <label for="splitting">RGB Splitting</label>
+    <input type="range" id="splitting" min="0" max="1" value="0.0" step="0.1">
+    <label for="hue">Hue</label>
+    <input type="range" id="hue" min="0" max="0.2" value="0.0" step="0.01">
     <script src="sketch.js"></script>
   </body>
 </html>

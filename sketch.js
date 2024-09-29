@@ -1,40 +1,29 @@
+let screen;
+let glitchShader;
+let img;
+let splittingValue;
+let hueValue;
+
 let images = [];
 let movingPositions = [];
 let lightStatus = {};
 let xStatus = {};
 let speeds = {};
 let globalSpeedMultiplier = 0.1;
-let movingVisibility = false;
+let xAlpha = 255;
 let movingAlpha = 0;
 
-let birdFrames = [];
-let birdIndex = 0;
-let birdX = 900;
-let birdY = 250;
-let birdSpeed = 0.5;
-let birdAnimationSpeed = 5;
-let birdAnimationCounter = 0;
-
-let dry, fx;
-
-let sliders = [];
-let sliderCCs = [];
-let showSliders = true;
-
-let midiAccess;
-let midiInput;
-let midiOutputs = [];
-let midiCCs = [1, 2, 3, 4, 5];
-
-let midiInputSelect;
-let ccSelects = [];
-
-let xAlpha = 255;
-
 function preload() {
-  dry = loadSound('audio/dry.wav');
-  fx = loadSound('audio/fx.wav');
+  glitchShader = loadShader('shader.vert', 'shader.frag');
+}
 
+function setup() {
+  createCanvas(600, 600, WEBGL);
+  screen = createGraphics(width, height);
+  
+  screen.background(50);
+  
+  img = loadImage(`images/keany.png`);
   let filenames = [
     '001_S.png', '002_S.png', '003_S.png', '004_X.png', '005_L.png', '006_L.png',
     '007_L.png', '008_L.png', '009_L.png', '010_L.png', '011_L.png', '012_L.png', '013_L.png',
@@ -73,248 +62,55 @@ function preload() {
     }
   });
 
-  for (let i = 1; i <= 8; i++) {
-    birdFrames.push(loadImage(`images/bird/bird${i}.png`));
-  }
-}
+  splittingValue = document.getElementById('splitting').value;
+  hueValue = document.getElementById('hue').value;
 
-function setup() {
-  createCanvas(800, 600);
-  dry.loop();
-  fx.loop();
-  dry.pause();
-  fx.pause();
-  toggleXImages();
-
-  let descriptions = ['Clouds Speed', 'Clouds Opacity', 'Bird Speed', 'Bird Altitude', 'Moon Opacity'];
-
-  for (let i = 0; i < 5; i++) {
-    let slider = createSlider(0, 255, 0).class('slider');
-    sliders.push(slider);
-
-    let ccSelect = createSelect().class('cc-select');
-    for (let j = 0; j < 128; j++) {
-      ccSelect.option(`CC ${j}`, j);
-    }
-    ccSelect.selected(midiCCs[i]);
-    ccSelect.changed(() => updateSliderCC(i, ccSelect.value()));
-    ccSelects.push(ccSelect);
-
-    let description = createP(descriptions[i]).class('slider-description').id(`description${i}`);
-  }
-
-  midiInputSelect = createSelect().class('cc-select');
-  midiInputSelect.option('Select MIDI Input');
-  midiInputSelect.changed(() => selectMIDIInput(midiInputSelect.value()));
-
-  navigator.requestMIDIAccess().then(onMIDISuccess, onMIDIFailure);
-  
-  // Position elements
-  positionElements();
-}
-
-function positionElements() {
-  for (let i = 0; i < 5; i++) {
-    select(`#description${i}`).position(10 + i * 160, height + 10);
-    ccSelects[i].position(10 + i * 160, height + 30);
-    sliders[i].position(10 + i * 160, height + 60);
-  }
-  midiInputSelect.position(10, height + 100);
+  shader(glitchShader);
 }
 
 function draw() {
-  background(0);
   images.forEach((item, index) => {
-    let imgAlpha = 255;
     if (item.type === 'S') {
-      image(item.img, 0, 0);
+      screen.image(item.img, 0, 0);
     } else if (item.type === 'L' && lightStatus[index]) {
-      image(item.img, 0, 0);
+      screen.image(item.img, 0, 0);
     } else if (item.type === 'X' && xStatus[index]) {
-      tint(255, xAlpha);
-      image(item.img, 0, 0);
-      noTint();
+      screen.tint(255, xAlpha);
+      screen.image(item.img, 0, 0);
+      screen.noTint();
     } else if (item.type === 'M') {
-      tint(255, movingAlpha);
+      screen.tint(255, movingAlpha);
       movingPositions[index] += speeds[index] * globalSpeedMultiplier;
       if (movingPositions[index] > width) movingPositions[index] = -item.img.width;
-      image(item.img, movingPositions[index], 0);
-      noTint();
+      screen.image(item.img, movingPositions[index], 0);
+      screen.noTint();
     }
   });
 
-  updateMovingVisibility();
+  splittingValue = document.getElementById('splitting').value;
+  hueValue = document.getElementById('hue').value;
+  drawScreen(splittingValue, hueValue);
+}
 
-  birdAnimationCounter++;
-  if (birdAnimationCounter % birdAnimationSpeed === 0) {
-    birdIndex = (birdIndex + 1) % birdFrames.length;
+
+function drawScreen(splittingValue, hueValue) {
+  glitchShader.setUniform('texture', screen);
+
+  glitchShader.setUniform('splitting', getNoiseValue(splittingValue));
+  glitchShader.setUniform('hue', hueValue);
+  
+  rect(-width/2, -height/2, width, height);
+}
+
+function getNoiseValue(intensity) { 
+  let v = noise(millis()/100);
+  const cutOff = 1-intensity;
+  
+  if(v < cutOff) {
+    return 0;
   }
-  image(birdFrames[birdIndex], birdX, birdY);
-  birdX -= birdSpeed;
-  if (birdX < -birdFrames[birdIndex].width) {
-    birdX = width;
-  }
-
-  globalSpeedMultiplier = map(sliders[0].value(), 0, 255, 0.01, 1.0);
-  movingAlpha = sliders[1].value();
-  birdSpeed = map(sliders[2].value(), 0, 255, 0.0, 2.0);
-  birdY = map(sliders[3].value(), 255, 0, 0, height);
-  xAlpha = sliders[4].value();
-
-  if (showSliders) {
-    sliders.forEach(slider => slider.show());
-    ccSelects.forEach(select => select.show());
-    for (let i = 0; i < 5; i++) {
-      select(`#description${i}`).show();
-    }
-  } else {
-    sliders.forEach(slider => slider.hide());
-    ccSelects.forEach(select => select.hide());
-    for (let i = 0; i < 5; i++) {
-      select(`#description${i}`).hide();
-    }
-  }
-
-  textFont('monospace');
-  textSize(16);
-  noStroke();
-  displayStatus();
-}
-
-function keyPressed() {
-  if (key === 'l') {
-    toggleRandomLights();
-  } else if (key === 'm') {
-    toggleXImages();
-  } else if (key === '+') {
-    adjustSpeed(0.1);
-  } else if (key === '-') {
-    adjustSpeed(-0.1);
-  } else if (key === 'h') {
-    turnAllLightsOff();
-  } else if (key === 'z') {
-    if (dry.isPlaying()) {
-      dry.pause();
-    } else {
-      dry.play();
-    }
-  } else if (key === 'x') {
-    if (fx.isPlaying()) {
-      fx.pause();
-      movingVisibility = !movingVisibility;
-    } else {
-      fx.play();
-      movingVisibility = !movingVisibility;
-    }
-  } else if (key >= '1' && key <= '5') {
-    globalSpeedMultiplier = parseFloat(key) * 0.2;
-  } else if (key === 't') {
-    showSliders = !showSliders;
-  }
-}
-
-function updateMovingVisibility() {
-  let fadeSpeed = 5;
-  if (movingVisibility && movingAlpha < 255) {
-    movingAlpha += fadeSpeed;
-  } else if (!movingVisibility && movingAlpha > 0) {
-    movingAlpha -= fadeSpeed;
-  }
-}
-
-function displayStatus() {
-  fill(255);
-
-  fill(dry.isPlaying() ? 'white' : 'grey');
-  text(`Dry track (z)`, 10, 520);
-
-  fill(fx.isPlaying() ? 'white' : 'grey');
-  text(`FX track (x)`, 180, 520);
-
-  let anyXVisible = Object.values(xStatus).some(status => status);
-  fill(anyXVisible ? 'white' : 'grey');
-  text(`Moon (m)`, 340, 520);
-
-  let lightsOn = Object.keys(lightStatus).filter(index => lightStatus[index]).join(', ');
-  fill(lightsOn.length > 0 ? 'white' : 'grey');
-  text(`Windows (l / h)`, 480, 520);
-
-  text(`Settings (t)`, 660, 520);
-}
-
-function toggleXImages() {
-  Object.keys(xStatus).forEach((index) => {
-    xStatus[index] = !xStatus[index];
-  });
-}
-
-function adjustSpeed(change) {
-  Object.keys(speeds).forEach((index) => {
-    if (images[index].type === 'M') {
-      speeds[index] += change;
-    }
-  });
-}
-
-function toggleRandomLights() {
-  const lightIndices = Object.keys(lightStatus);
-  const numLightsToToggle = floor(random(1, lightIndices.length / 2));
-  for (let i = 0; i < numLightsToToggle; i++) {
-    let index = random(lightIndices);
-    lightStatus[index] = !lightStatus[index];
-  }
-}
-
-function turnAllLightsOff() {
-  Object.keys(lightStatus).forEach(index => {
-    lightStatus[index] = false;
-  });
-}
-
-function onMIDISuccess(access) {
-  midiAccess = access;
-
-  let inputs = midiAccess.inputs.values();
-  for (let input of inputs) {
-    midiInputSelect.option(input.name, input.id);
-  }
-
-  let outputs = midiAccess.outputs.values();
-  for (let output of outputs) {
-    midiOutputs.push(output);
-  }
-}
-
-function onMIDIFailure() {
-  console.log('Could not access MIDI devices.');
-}
-
-function selectMIDIInput(inputId) {
-  if (midiInput) {
-    midiInput.onmidimessage = null;
-  }
-
-  let inputs = midiAccess.inputs;
-  midiInput = inputs.get(inputId);
-  if (midiInput) {
-    midiInput.onmidimessage = handleMIDIMessage;
-  }
-}
-
-function handleMIDIMessage(message) {
-  let data = message.data;
-  let command = data[0];
-  let controller = data[1];
-  let value = data[2];
-
-  if (command === 176) {
-    let sliderIndex = midiCCs.indexOf(parseInt(controller));
-    if (sliderIndex !== -1) {
-      sliders[sliderIndex].value(map(value, 0, 127, 0, 255));
-    }
-  }
-}
-
-function updateSliderCC(index, cc) {
-  midiCCs[index] = parseInt(cc);
+  
+  v = pow((v-cutOff) * 1/(1-cutOff), 2);
+  
+  return v;
 }
