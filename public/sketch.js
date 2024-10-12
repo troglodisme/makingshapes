@@ -1,3 +1,11 @@
+
+
+//encoder 
+let encoderValue = 0;
+let buttonPressed = false;
+
+
+//existing sketch
 let images = [];
 let movingPositions = [];
 let lightStatus = {};
@@ -80,6 +88,9 @@ function preload() {
 
 function setup() {
   createCanvas(800, 600);
+  setInterval(fetchEncoderData, 100);
+
+
   dry.loop();
   fx.loop();
   dry.pause();
@@ -124,6 +135,7 @@ function positionElements() {
 
 function draw() {
   background(0);
+
   images.forEach((item, index) => {
     let imgAlpha = 255;
     if (item.type === 'S') {
@@ -143,6 +155,11 @@ function draw() {
     }
   });
 
+
+  textSize(32);
+  fill(255);
+  text('Encoder Value: ' + encoderValue, 10, 50);
+
   updateMovingVisibility();
 
   birdAnimationCounter++;
@@ -157,8 +174,12 @@ function draw() {
 
   globalSpeedMultiplier = map(sliders[0].value(), 0, 255, 0.01, 1.0);
   movingAlpha = sliders[1].value();
+
   birdSpeed = map(sliders[2].value(), 0, 255, 0.0, 2.0);
-  birdY = map(sliders[3].value(), 255, 0, 0, height);
+
+  birdY = map(encoderValue, 100, 0, 0, height);
+
+
   xAlpha = sliders[4].value();
 
   if (showSliders) {
@@ -179,6 +200,17 @@ function draw() {
   textSize(16);
   noStroke();
   displayStatus();
+}
+
+// Fetch the latest encoder data from the server
+function fetchEncoderData() {
+  fetch('/encoder-data')
+    .then(response => response.json())
+    .then(data => {
+      encoderValue = data.encoderValue;
+      buttonPressed = data.buttonPressed;
+    })
+    .catch(error => console.error('Error fetching data:', error));
 }
 
 function keyPressed() {

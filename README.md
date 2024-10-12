@@ -21,4 +21,8 @@ You should express express@4.21.1 (or similar version)
 
 - Run the app
 
-node server.js
+npm start (or use node server.js if your package is not updated)
+
+
+
+---> Remember to change   your serial port in server.js ! 
