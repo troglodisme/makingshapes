@@ -4,8 +4,7 @@
 
 
 //Encoders
-let encoderValues = [0, 0, 0, 0];  // 4 encoders total (including the existing one)
-let buttonPressed = [false, false, false, false];  // Button state for each encoder
+let encoderValue = 0;  // 4 encoders total (including the existing one)
 
 
 //existing sketch
