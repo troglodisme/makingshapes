@@ -1,8 +1,11 @@
 
 
-//encoder 
-let encoderValue = 0;
-let buttonPressed = false;
+
+
+
+//Encoders
+let encoderValues = [0, 0, 0, 0];  // 4 encoders total (including the existing one)
+let buttonPressed = [false, false, false, false];  // Button state for each encoder
 
 
 //existing sketch
@@ -31,11 +34,17 @@ let showSliders = true;
 
 let midiAccess;
 let midiInput;
-let midiOutputs = [];
 let midiCCs = [1, 2, 3, 4, 5];
 
-let midiInputSelect;
+
+// let midiInputSelect;
 let ccSelects = [];
+
+let midiOutputSelect;  
+let midiOutputs = [];
+
+
+
 
 let xAlpha = 255;
 
@@ -118,6 +127,11 @@ function setup() {
   midiInputSelect.option('Select MIDI Input');
   midiInputSelect.changed(() => selectMIDIInput(midiInputSelect.value()));
 
+  midiOutputSelect = createSelect().class('cc-select');
+  midiOutputSelect.option('Select MIDI Output');
+  midiOutputSelect.changed(() => selectMIDIOutput(midiOutputSelect.value()));
+ 
+
   navigator.requestMIDIAccess().then(onMIDISuccess, onMIDIFailure);
   
   // Position elements
@@ -131,6 +145,9 @@ function positionElements() {
     sliders[i].position(10 + i * 160, height + 60);
   }
   midiInputSelect.position(10, height + 100);
+
+  midiOutputSelect.position(10, height + 130);
+
 }
 
 function draw() {
@@ -177,8 +194,7 @@ function draw() {
 
   birdSpeed = map(sliders[2].value(), 0, 255, 0.0, 2.0);
 
-  birdY = map(encoderValue, 100, 0, 0, height);
-
+  // birdY = map(encoderValue, 100, 0, 0, height);
 
   xAlpha = sliders[4].value();
 
@@ -202,16 +218,51 @@ function draw() {
   displayStatus();
 }
 
-// Fetch the latest encoder data from the server
+
+
+
+let previousEncoderValue = -1;  // Store the previous encoder value for comparison
+
 function fetchEncoderData() {
   fetch('/encoder-data')
     .then(response => response.json())
     .then(data => {
       encoderValue = data.encoderValue;
       buttonPressed = data.buttonPressed;
+
+      // Debug: Send CC1, 127 when the encoder button is pressed
+      if (buttonPressed) {
+        console.log("Encoder button pressed, sending CC1, 127");
+        sendMIDICC(1, 127);  // Send CC1, 127 when button is pressed
+      }
+
+      // Modify birdY position with encoder value
+      birdY = map(encoderValue, 100, 0, 0, height);
+
+      // Only send MIDI if the encoder value has changed
+      if (encoderValue !== previousEncoderValue) {
+        // Map encoder value to the MIDI range (e.g., 0-127 for a fader)
+        let midiValue = map(encoderValue, 0, 127, 0, 127);  // Adjust range as necessary
+
+        // Log the mapped MIDI value to the console for debugging
+        console.log(`Encoder Value: ${encoderValue}, Mapped MIDI Value: ${midiValue}`);
+
+        sendMIDICC(10, midiValue);  // Send MIDI CC with controller number 10
+
+        previousEncoderValue = encoderValue;  // Update previous value to current one
+      }
     })
     .catch(error => console.error('Error fetching data:', error));
 }
+
+
+function sendMIDICC(controller, value) {
+  if (midiOutput) {  // Ensure an output is selected
+    let status = 0xB0;  // MIDI Control Change message
+    midiOutput.send([status, controller, value]);  // Send CC message
+  }
+}
+
 
 function keyPressed() {
   if (key === 'l') {
@@ -305,17 +356,21 @@ function turnAllLightsOff() {
 
 function onMIDISuccess(access) {
   midiAccess = access;
-
+  
   let inputs = midiAccess.inputs.values();
   for (let input of inputs) {
     midiInputSelect.option(input.name, input.id);
   }
-
+  
   let outputs = midiAccess.outputs.values();
   for (let output of outputs) {
     midiOutputs.push(output);
+    midiOutputSelect.option(output.name, output.id);  // Add to output dropdown
   }
+  
 }
+
+
 
 function onMIDIFailure() {
   console.log('Could not access MIDI devices.');
@@ -333,6 +388,11 @@ function selectMIDIInput(inputId) {
   }
 }
 
+function selectMIDIOutput(outputId) {
+  let outputs = midiAccess.outputs;
+  midiOutput = outputs.get(outputId);  // Select the correct MIDI output
+}
+
 function handleMIDIMessage(message) {
   let data = message.data;
   let command = data[0];
@@ -346,6 +406,9 @@ function handleMIDIMessage(message) {
     }
   }
 }
+
+
+
 
 function updateSliderCC(index, cc) {
   midiCCs[index] = parseInt(cc);
