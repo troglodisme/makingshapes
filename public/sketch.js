@@ -42,10 +42,10 @@ let ccSelects = [];
 let midiOutputSelect;  
 let midiOutputs = [];
 
-
-
-
 let xAlpha = 255;
+let glitchShader;
+let screen;
+let tinterImg;
 
 function preload() {
   dry = loadSound('audio/dry.wav');
@@ -163,9 +163,7 @@ function draw() {
     } else if (item.type === 'L' && lightStatus[index]) {
       screen.image(item.img, 0, 0);
     } else if (item.type === 'X' && xStatus[index]) {
-      // screen.tint(255, xAlpha);
       screen.image(item.img, 0, 0);
-      // screen.noTint();
     } else if (item.type === 'M') {
       screen.tint(255, movingAlpha);
       movingPositions[index] += speeds[index] * globalSpeedMultiplier;
@@ -180,7 +178,6 @@ function draw() {
   //bird
   birdSpeed = map(sliders[2].value(), 0, 255, 0.0, 2.0);
   birdY = map(sliders[3].value(), 0, 255, 0, height);
-  console.log(birdY);
   birdAnimationCounter++;
   if (birdAnimationCounter % birdAnimationSpeed === 0) {
     birdIndex = (birdIndex + 1) % birdFrames.length;
