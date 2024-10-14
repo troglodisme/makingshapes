@@ -98,7 +98,7 @@ function preload() {
 
 function setup() {
   createCanvas(800, 600, WEBGL);
-  setInterval(fetchEncoderData, 100);
+  // setInterval(fetchEncoderData, 100);
 
   screen = createGraphics(width, height);
 
@@ -163,9 +163,9 @@ function draw() {
     } else if (item.type === 'L' && lightStatus[index]) {
       screen.image(item.img, 0, 0);
     } else if (item.type === 'X' && xStatus[index]) {
-      screen.tint(255, xAlpha);
+      // screen.tint(255, xAlpha);
       screen.image(item.img, 0, 0);
-      screen.noTint();
+      // screen.noTint();
     } else if (item.type === 'M') {
       screen.tint(255, movingAlpha);
       movingPositions[index] += speeds[index] * globalSpeedMultiplier;
@@ -174,35 +174,32 @@ function draw() {
       screen.noTint();
     }
   });
+
+  updateMovingVisibility();
+
+  //bird
+  birdSpeed = map(sliders[2].value(), 0, 255, 0.0, 2.0);
+  birdY = map(sliders[3].value(), 0, 255, 0, height);
+  console.log(birdY);
+  birdAnimationCounter++;
+  if (birdAnimationCounter % birdAnimationSpeed === 0) {
+    birdIndex = (birdIndex + 1) % birdFrames.length;
+  }
+  screen.image(birdFrames[birdIndex], birdX, birdY);
+  birdX -= birdSpeed;
+  if (birdX < -birdFrames[birdIndex].width) {
+    birdX = width;
+  }
+
+  globalSpeedMultiplier = map(sliders[0].value(), 0, 255, 0.01, 1.0);
+  movingAlpha = sliders[1].value();
+
+  xAlpha = sliders[4].value();
+
   var glitchValue = getNoiseValue(sliders[5].value() / 255);
   var hueValue = sliders[6].value() / 255 * 0.2;
+
   drawScreen(glitchValue, hueValue);
-
-
-  // textSize(32);
-  // fill(255);
-  // text('Encoder Value: ' + encoderValue, 10, 50);
-
-  // updateMovingVisibility();
-
-  // birdAnimationCounter++;
-  // if (birdAnimationCounter % birdAnimationSpeed === 0) {
-  //   birdIndex = (birdIndex + 1) % birdFrames.length;
-  // }
-  // image(birdFrames[birdIndex], birdX, birdY);
-  // birdX -= birdSpeed;
-  // if (birdX < -birdFrames[birdIndex].width) {
-  //   birdX = width;
-  // }
-
-  // globalSpeedMultiplier = map(sliders[0].value(), 0, 255, 0.01, 1.0);
-  // movingAlpha = sliders[1].value();
-
-  // birdSpeed = map(sliders[2].value(), 0, 255, 0.0, 2.0);
-
-  // // birdY = map(encoderValue, 100, 0, 0, height);
-
-  // xAlpha = sliders[4].value();
 
   if (showSliders) {
     sliders.forEach(slider => slider.show());
