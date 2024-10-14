@@ -33,7 +33,7 @@ let showSliders = true;
 
 let midiAccess;
 let midiInput;
-let midiCCs = [1, 2, 3, 4, 5];
+let midiCCs = [1, 2, 3, 4, 5, 6, 7];
 
 
 // let midiInputSelect;
@@ -92,12 +92,15 @@ function preload() {
   for (let i = 1; i <= 8; i++) {
     birdFrames.push(loadImage(`images/bird/bird${i}.png`));
   }
+
+  glitchShader = loadShader('shader.vert', 'shader.frag');
 }
 
 function setup() {
-  createCanvas(800, 600);
+  createCanvas(800, 600, WEBGL);
   setInterval(fetchEncoderData, 100);
 
+  screen = createGraphics(width, height);
 
   dry.loop();
   fx.loop();
@@ -105,9 +108,9 @@ function setup() {
   fx.pause();
   toggleXImages();
 
-  let descriptions = ['Clouds Speed', 'Clouds Opacity', 'Bird Speed', 'Bird Altitude', 'Moon Opacity'];
+  let descriptions = ['Clouds Speed', 'Clouds Opacity', 'Bird Speed', 'Bird Altitude', 'Moon Opacity', 'Glitch', 'Hue'];
 
-  for (let i = 0; i < 5; i++) {
+  for (let i = 0; i < descriptions.length; i++) {
     let slider = createSlider(0, 255, 0).class('slider');
     sliders.push(slider);
 
@@ -135,13 +138,17 @@ function setup() {
   
   // Position elements
   positionElements();
+
+  shader(glitchShader);
 }
 
 function positionElements() {
-  for (let i = 0; i < 5; i++) {
-    select(`#description${i}`).position(10 + i * 160, height + 10);
-    ccSelects[i].position(10 + i * 160, height + 30);
-    sliders[i].position(10 + i * 160, height + 60);
+  for (let i = 0; i < sliders.length; i++) {
+    var sliderWidth = width/sliders.length;
+    select(`#description${i}`).position(10 + i * sliderWidth, height + 10);
+    ccSelects[i].position(10 + i * sliderWidth, height + 30);
+    sliders[i].position(10 + i * sliderWidth, height + 60);
+    sliders[i].size(sliderWidth - 10);
   }
   midiInputSelect.position(10, height + 100);
 
@@ -150,75 +157,94 @@ function positionElements() {
 }
 
 function draw() {
-  background(0);
-
   images.forEach((item, index) => {
-    let imgAlpha = 255;
     if (item.type === 'S') {
-      image(item.img, 0, 0);
+      screen.image(item.img, 0, 0);
     } else if (item.type === 'L' && lightStatus[index]) {
-      image(item.img, 0, 0);
+      screen.image(item.img, 0, 0);
     } else if (item.type === 'X' && xStatus[index]) {
-      tint(255, xAlpha);
-      image(item.img, 0, 0);
-      noTint();
+      screen.tint(255, xAlpha);
+      screen.image(item.img, 0, 0);
+      screen.noTint();
     } else if (item.type === 'M') {
-      tint(255, movingAlpha);
+      screen.tint(255, movingAlpha);
       movingPositions[index] += speeds[index] * globalSpeedMultiplier;
       if (movingPositions[index] > width) movingPositions[index] = -item.img.width;
-      image(item.img, movingPositions[index], 0);
-      noTint();
+      screen.image(item.img, movingPositions[index], 0);
+      screen.noTint();
     }
   });
+  var glitchValue = getNoiseValue(sliders[5].value() / 255);
+  var hueValue = sliders[6].value() / 255 * 0.2;
+  drawScreen(glitchValue, hueValue);
 
 
-  textSize(32);
-  fill(255);
-  text('Encoder Value: ' + encoderValue, 10, 50);
+  // textSize(32);
+  // fill(255);
+  // text('Encoder Value: ' + encoderValue, 10, 50);
 
-  updateMovingVisibility();
+  // updateMovingVisibility();
 
-  birdAnimationCounter++;
-  if (birdAnimationCounter % birdAnimationSpeed === 0) {
-    birdIndex = (birdIndex + 1) % birdFrames.length;
-  }
-  image(birdFrames[birdIndex], birdX, birdY);
-  birdX -= birdSpeed;
-  if (birdX < -birdFrames[birdIndex].width) {
-    birdX = width;
-  }
+  // birdAnimationCounter++;
+  // if (birdAnimationCounter % birdAnimationSpeed === 0) {
+  //   birdIndex = (birdIndex + 1) % birdFrames.length;
+  // }
+  // image(birdFrames[birdIndex], birdX, birdY);
+  // birdX -= birdSpeed;
+  // if (birdX < -birdFrames[birdIndex].width) {
+  //   birdX = width;
+  // }
 
-  globalSpeedMultiplier = map(sliders[0].value(), 0, 255, 0.01, 1.0);
-  movingAlpha = sliders[1].value();
+  // globalSpeedMultiplier = map(sliders[0].value(), 0, 255, 0.01, 1.0);
+  // movingAlpha = sliders[1].value();
 
-  birdSpeed = map(sliders[2].value(), 0, 255, 0.0, 2.0);
+  // birdSpeed = map(sliders[2].value(), 0, 255, 0.0, 2.0);
 
-  // birdY = map(encoderValue, 100, 0, 0, height);
+  // // birdY = map(encoderValue, 100, 0, 0, height);
 
-  xAlpha = sliders[4].value();
+  // xAlpha = sliders[4].value();
 
   if (showSliders) {
     sliders.forEach(slider => slider.show());
     ccSelects.forEach(select => select.show());
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < sliders.length; i++) {
       select(`#description${i}`).show();
     }
   } else {
     sliders.forEach(slider => slider.hide());
     ccSelects.forEach(select => select.hide());
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < sliders.length; i++) {
       select(`#description${i}`).hide();
     }
   }
 
-  textFont('monospace');
-  textSize(16);
-  noStroke();
-  displayStatus();
+  // textFont('monospace');
+  // textSize(16);
+  // noStroke();
+  // displayStatus();
 }
 
+function drawScreen(splittingValue, hueValue) {
+  glitchShader.setUniform('texture', screen);
 
+  glitchShader.setUniform('splitting', splittingValue);
+  glitchShader.setUniform('hue', hueValue);
+  
+  rect(-width/2, -height/2, width, height);
+}
 
+function getNoiseValue(intensity) { 
+  let v = noise(millis()/100);
+  const cutOff = 1-intensity;
+  
+  if(v < cutOff) {
+    return 0;
+  }
+  
+  v = pow((v-cutOff) * 1/(1-cutOff), 2);
+  
+  return v;
+}
 
 let previousEncoderValue = -1;  // Store the previous encoder value for comparison
 
