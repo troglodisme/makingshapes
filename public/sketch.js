@@ -100,7 +100,7 @@ function preload() {
 }
 
 function setup() {
-  createCanvas(800, 600, WEBGL);
+  createCanvas(800, 480, WEBGL);
 
   screen = createGraphics(width, height);
   toggleXImages();
@@ -177,12 +177,18 @@ function positionElements() {
 function draw() {
 
   background(0);
-
+  
+  // using encoders
   //  globalSpeedMultiplier = map(encoderValues[0], 0, 127, 0.01, 1.0);  // Clouds speed
+  //  movingAlpha = map(encoderValues[1], 0, 127, 0, 255);               // Clouds opacity
+  //  birdSpeed = map(encoderValues[2], 0, 127, 0.0, 2.0);               // Bird speed
+  //  birdY = map(encoderValues[3], 0, 127, 0, height);   
+   
+   // using p5 sliders
    globalSpeedMultiplier = map(sliders[0].value(), 0, 255, 0.01, 1.0);
-   movingAlpha = map(encoderValues[1], 0, 127, 0, 255);               // Clouds opacity
-   birdSpeed = map(encoderValues[2], 0, 127, 0.0, 2.0);               // Bird speed
-   birdY = map(encoderValues[3], 0, 127, 0, height);         
+   movingAlpha = map(sliders[1].value(), 0, 127, 0, 255);
+   birdSpeed = map(sliders[2].value(), 0, 255, 0.0, 2.0);
+   birdY = map(sliders[3].value(), 0, 255, 0, height);
 
   images.forEach((item, index) => {
     if (item.type === 'S') {
@@ -192,7 +198,6 @@ function draw() {
     } else if (item.type === 'X' && xStatus[index]) {
       screen.image(item.img, 0, 0);
     } else if (item.type === 'M') {
-      console.log ('moving pos cloud ' + index + ' = ' + movingPositions[index]);
       movingPositions[index] += speeds[index] * globalSpeedMultiplier;
       if (movingPositions[index] > width) movingPositions[index] = -item.img.width;
       screen.image(item.img, movingPositions[index], 0);
@@ -201,9 +206,6 @@ function draw() {
 
   updateMovingVisibility();
 
-  //bird
-  birdSpeed = map(sliders[2].value(), 0, 255, 0.0, 2.0);
-  birdY = map(sliders[3].value(), 0, 255, 0, height);
   birdAnimationCounter++;
   if (birdAnimationCounter % birdAnimationSpeed === 0) {
     birdIndex = (birdIndex + 1) % birdFrames.length;
@@ -220,6 +222,7 @@ function draw() {
   // text(`Encoder 2: ${encoderValues[1]}`, 10, 90);
   // text(`Encoder 3: ${encoderValues[2]}`, 10, 130);
   // text(`Encoder 4: ${encoderValues[3]}`, 10, 170);
+  console.log('encoder 1 : ' + encoderValues[0] + ', encoder 2 : ' + encoderValues[1] + ', encoder 3 : ' + encoderValues[2] +  ', encoder 4 : '  + encoderValues[3] )
 
   movingAlpha = sliders[1].value();
   xAlpha = sliders[4].value();
@@ -235,12 +238,16 @@ function draw() {
     for (let i = 0; i < sliders.length; i++) {
       select(`#description${i}`).show();
     }
+    midiOutputSelect.show();
+    midiInputSelect.show();
   } else {
     sliders.forEach(slider => slider.hide());
     ccSelects.forEach(select => select.hide());
     for (let i = 0; i < sliders.length; i++) {
       select(`#description${i}`).hide();
     }
+    midiOutputSelect.hide();
+    midiInputSelect.hide();
   }
 
   // textFont('monospace');
@@ -309,6 +316,11 @@ function keyPressed() {
     globalSpeedMultiplier = parseFloat(key) * 0.2;
   } else if (key === 't') {
     showSliders = !showSliders;
+  }
+  else if (key === 'f') {
+    let fs = fullscreen();
+    fullscreen(!fs);
+    showSliders = fs;
   }
 }
 
