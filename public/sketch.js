@@ -102,6 +102,10 @@ function preload() {
 function setup() {
   createCanvas(800, 480, WEBGL);
 
+  midiButton = createButton('Request MIDI Access');
+  midiButton.position(10, 10);
+  midiButton.mousePressed(requestMIDI);
+
   screen = createGraphics(width, height);
   toggleXImages();
 
@@ -152,12 +156,15 @@ function setup() {
   midiOutputSelect.changed(() => selectMIDIOutput(midiOutputSelect.value()));
  
 
-  navigator.requestMIDIAccess().then(onMIDISuccess, onMIDIFailure);
   
   // Position elements
   positionElements();
 
   shader(glitchShader);
+}
+
+function requestMIDI() {
+  navigator.requestMIDIAccess().then(onMIDISuccess, onMIDIFailure);
 }
 
 function positionElements() {
@@ -179,16 +186,16 @@ function draw() {
   background(0);
   
   // using encoders
-  //  globalSpeedMultiplier = map(encoderValues[0], 0, 127, 0.01, 1.0);  // Clouds speed
-  //  movingAlpha = map(encoderValues[1], 0, 127, 0, 255);               // Clouds opacity
-  //  birdSpeed = map(encoderValues[2], 0, 127, 0.0, 2.0);               // Bird speed
-  //  birdY = map(encoderValues[3], 0, 127, 0, height);   
+   globalSpeedMultiplier = map(encoderValues[0], 0, 127, 0.01, 1.0);  // Clouds speed
+   movingAlpha = map(encoderValues[1], 0, 127, 0, 255);               // Clouds opacity
+   birdSpeed = map(encoderValues[2], 0, 127, 0.0, 2.0);               // Bird speed
+   birdY = map(encoderValues[3], 0, 127, 0, height);   
    
    // using p5 sliders
-   globalSpeedMultiplier = map(sliders[0].value(), 0, 255, 0.01, 1.0);
-   movingAlpha = map(sliders[1].value(), 0, 127, 0, 255);
-   birdSpeed = map(sliders[2].value(), 0, 255, 0.0, 2.0);
-   birdY = map(sliders[3].value(), 0, 255, 0, height);
+  //  globalSpeedMultiplier = map(sliders[0].value(), 0, 255, 0.01, 1.0);
+  //  movingAlpha = map(sliders[1].value(), 0, 127, 0, 255);
+  //  birdSpeed = map(sliders[2].value(), 0, 255, 0.0, 2.0);
+  //  birdY = map(sliders[3].value(), 0, 255, 0, height);
 
   images.forEach((item, index) => {
     if (item.type === 'S') {
@@ -395,12 +402,15 @@ function onMIDISuccess(access) {
   let inputs = midiAccess.inputs.values();
   for (let input of inputs) {
     midiInputSelect.option(input.name, input.id);
+    console.log("midi input success");
   }
   
   let outputs = midiAccess.outputs.values();
   for (let output of outputs) {
     midiOutputs.push(output);
     midiOutputSelect.option(output.name, output.id);  // Add to output dropdown
+    console.log("midi output success");
+
   }
   
 }

@@ -10,6 +10,10 @@ const io = new Server(server);  // Initialize socket.io
 const portNumber = 3000;
 app.use(express.static('public'));
 
+const {WebMidi} = require("webmidi");
+
+
+
 // List available serial ports
 SerialPort.list().then(
   ports => {
@@ -19,7 +23,7 @@ SerialPort.list().then(
     });
 
     // Establish a serial connection
-    const selectedPortPath = '/dev/cu.usbmodem11401';  // Change this to your specific port
+    const selectedPortPath = '/dev/cu.usbmodem1401';  // Change this to your specific port
     const port = new SerialPort({ path: selectedPortPath, baudRate: 115200 }, function (err) {
       if (err) {
         return console.log('Error: ', err.message);
@@ -70,3 +74,20 @@ server.listen(portNumber, () => {
   console.log(`Server is running on port ${portNumber}`);
 });
 
+
+//webmidi
+
+WebMidi
+  .enable()
+  .then(onEnabled)
+  .catch(err => alert(err)); 
+
+function onEnabled() {
+  
+  // Inputs
+  WebMidi.inputs.forEach(input => console.log("Input:", input.manufacturer, input.name));
+  
+  // Outputs
+  WebMidi.outputs.forEach(output => console.log("Output:", output.manufacturer, output.name));
+
+}
