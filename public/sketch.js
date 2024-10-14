@@ -1,7 +1,15 @@
+/*
+
+
+- How can we link multiple animation actions to one encoder (midi) and easily change that during protyping 
+
+*/
+
 let socket; // Socket.io connection
 
 // Encoders
 let encoderValues = [0, 0, 0, 0];  // Array to hold 4 encoder values
+let previousEncoderValues = [0, 0, 0, 0];  // To track previous encoder values
 
 // existing sketch variables
 let images = [];
@@ -87,22 +95,29 @@ function preload() {
 
 function setup() {
   createCanvas(800, 600);
-  // setInterval(fetchEncoderData, 100);
-
-
-  // dry.loop();
-  // fx.loop();
-  // dry.pause();
-  // fx.pause();
   toggleXImages();
 
    // Connect to the server using socket.io
    socket = io();
 
-   // Listen for encoder data from the server
+
    socket.on('encoderData', function(data) {
-     encoderValues = [data.value1, data.value2, data.value3, data.value4];
-   });
+    let newEncoderValues = [data.value1, data.value2, data.value3, data.value4];
+  
+    // Iterate through each encoder value and send MIDI CC if the value has changed
+    newEncoderValues.forEach((newValue, index) => {
+      if (newValue !== previousEncoderValues[index]) {
+        // Send a MIDI CC message for the changed encoder using the assigned CC number from midiCCs
+        sendMIDICC(midiCCs[index], map(newValue, 0, 127, 0, 127));  // CC range 0-127
+  
+        // Update the previous value for that encoder
+        previousEncoderValues[index] = newValue;
+      }
+    });
+  
+    // Update global encoderValues array
+    encoderValues = newEncoderValues;
+  });
    
   let descriptions = ['Clouds Speed', 'Clouds Opacity', 'Bird Speed', 'Bird Altitude', 'Moon Opacity'];
 
@@ -149,9 +164,9 @@ function positionElements() {
 }
 
 function draw() {
+
   background(0);
 
-   // Use encoder values to control specific sketch parameters
    globalSpeedMultiplier = map(encoderValues[0], 0, 127, 0.01, 1.0);  // Clouds speed
    movingAlpha = map(encoderValues[1], 0, 127, 0, 255);               // Clouds opacity
    birdSpeed = map(encoderValues[2], 0, 127, 0.0, 2.0);               // Bird speed
@@ -175,8 +190,6 @@ function draw() {
       noTint();
     }
   });
-
-
 
   updateMovingVisibility();
 
