@@ -88,7 +88,7 @@ function preload() {
     } else if (type === 'L') {
       lightStatus[index] = false;
     } else if (type === 'X') {
-      xStatus[index] = true;
+      xStatus[index] = false;
     }
   });
 
@@ -196,11 +196,15 @@ function draw() {
     } else if (item.type === 'L' && lightStatus[index]) {
       screen.image(item.img, 0, 0);
     } else if (item.type === 'X' && xStatus[index]) {
+      screen.tint(255, xAlpha);
       screen.image(item.img, 0, 0);
+      screen.tint(255, 255);
     } else if (item.type === 'M') {
+      screen.tint(255, movingAlpha);
       movingPositions[index] += speeds[index] * globalSpeedMultiplier;
       if (movingPositions[index] > width) movingPositions[index] = -item.img.width;
       screen.image(item.img, movingPositions[index], 0);
+      screen.tint(255, 255);
     }
   });
 
