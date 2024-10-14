@@ -1,13 +1,9 @@
+let socket; // Socket.io connection
 
+// Encoders
+let encoderValues = [0, 0, 0, 0];  // Array to hold 4 encoder values
 
-
-
-
-//Encoders
-let encoderValue = 0;  // 4 encoders total (including the existing one)
-
-
-//existing sketch
+// existing sketch variables
 let images = [];
 let movingPositions = [];
 let lightStatus = {};
@@ -35,21 +31,16 @@ let midiAccess;
 let midiInput;
 let midiCCs = [1, 2, 3, 4, 5];
 
-
-// let midiInputSelect;
 let ccSelects = [];
-
 let midiOutputSelect;  
 let midiOutputs = [];
 
-
-
-
 let xAlpha = 255;
 
+
 function preload() {
-  dry = loadSound('audio/dry.wav');
-  fx = loadSound('audio/fx.wav');
+  // dry = loadSound('audio/dry.wav');
+  // fx = loadSound('audio/fx.wav');
 
   let filenames = [
     '001_S.png', '002_S.png', '003_S.png', '004_X.png', '005_L.png', '006_L.png',
@@ -96,15 +87,23 @@ function preload() {
 
 function setup() {
   createCanvas(800, 600);
-  setInterval(fetchEncoderData, 100);
+  // setInterval(fetchEncoderData, 100);
 
 
-  dry.loop();
-  fx.loop();
-  dry.pause();
-  fx.pause();
+  // dry.loop();
+  // fx.loop();
+  // dry.pause();
+  // fx.pause();
   toggleXImages();
 
+   // Connect to the server using socket.io
+   socket = io();
+
+   // Listen for encoder data from the server
+   socket.on('encoderData', function(data) {
+     encoderValues = [data.value1, data.value2, data.value3, data.value4];
+   });
+   
   let descriptions = ['Clouds Speed', 'Clouds Opacity', 'Bird Speed', 'Bird Altitude', 'Moon Opacity'];
 
   for (let i = 0; i < 5; i++) {
@@ -152,6 +151,12 @@ function positionElements() {
 function draw() {
   background(0);
 
+   // Use encoder values to control specific sketch parameters
+   globalSpeedMultiplier = map(encoderValues[0], 0, 127, 0.01, 1.0);  // Clouds speed
+   movingAlpha = map(encoderValues[1], 0, 127, 0, 255);               // Clouds opacity
+   birdSpeed = map(encoderValues[2], 0, 127, 0.0, 2.0);               // Bird speed
+   birdY = map(encoderValues[3], 0, 127, 0, height);         
+
   images.forEach((item, index) => {
     let imgAlpha = 255;
     if (item.type === 'S') {
@@ -172,9 +177,6 @@ function draw() {
   });
 
 
-  textSize(32);
-  fill(255);
-  text('Encoder Value: ' + encoderValue, 10, 50);
 
   updateMovingVisibility();
 
@@ -188,13 +190,18 @@ function draw() {
     birdX = width;
   }
 
+  textSize(32);
+  fill(255);
+  text(`Encoder 1: ${encoderValues[0]}`, 10, 50);
+  text(`Encoder 2: ${encoderValues[1]}`, 10, 90);
+  text(`Encoder 3: ${encoderValues[2]}`, 10, 130);
+  text(`Encoder 4: ${encoderValues[3]}`, 10, 170);
+
+
   globalSpeedMultiplier = map(sliders[0].value(), 0, 255, 0.01, 1.0);
   movingAlpha = sliders[1].value();
-
   birdSpeed = map(sliders[2].value(), 0, 255, 0.0, 2.0);
-
-  // birdY = map(encoderValue, 100, 0, 0, height);
-
+  birdY = map(sliders[3], 100, 0, 0, height);
   xAlpha = sliders[4].value();
 
   if (showSliders) {
@@ -218,43 +225,6 @@ function draw() {
 }
 
 
-
-
-let previousEncoderValue = -1;  // Store the previous encoder value for comparison
-
-function fetchEncoderData() {
-  fetch('/encoder-data')
-    .then(response => response.json())
-    .then(data => {
-      encoderValue = data.encoderValue;
-      buttonPressed = data.buttonPressed;
-
-      // Debug: Send CC1, 127 when the encoder button is pressed
-      if (buttonPressed) {
-        console.log("Encoder button pressed, sending CC1, 127");
-        sendMIDICC(1, 127);  // Send CC1, 127 when button is pressed
-      }
-
-      // Modify birdY position with encoder value
-      birdY = map(encoderValue, 100, 0, 0, height);
-
-      // Only send MIDI if the encoder value has changed
-      if (encoderValue !== previousEncoderValue) {
-        // Map encoder value to the MIDI range (e.g., 0-127 for a fader)
-        let midiValue = map(encoderValue, 0, 127, 0, 127);  // Adjust range as necessary
-
-        // Log the mapped MIDI value to the console for debugging
-        console.log(`Encoder Value: ${encoderValue}, Mapped MIDI Value: ${midiValue}`);
-
-        sendMIDICC(10, midiValue);  // Send MIDI CC with controller number 10
-
-        previousEncoderValue = encoderValue;  // Update previous value to current one
-      }
-    })
-    .catch(error => console.error('Error fetching data:', error));
-}
-
-
 function sendMIDICC(controller, value) {
   if (midiOutput) {  // Ensure an output is selected
     let status = 0xB0;  // MIDI Control Change message
@@ -275,19 +245,21 @@ function keyPressed() {
   } else if (key === 'h') {
     turnAllLightsOff();
   } else if (key === 'z') {
-    if (dry.isPlaying()) {
-      dry.pause();
-    } else {
-      dry.play();
-    }
+    console.log("no sounds");
+    // if (dry.isPlaying()) {
+    //   dry.pause();
+    // } else {
+    //   dry.play();
+    // }
   } else if (key === 'x') {
-    if (fx.isPlaying()) {
-      fx.pause();
-      movingVisibility = !movingVisibility;
-    } else {
-      fx.play();
-      movingVisibility = !movingVisibility;
-    }
+    movingVisibility = !movingVisibility;
+    // if (fx.isPlaying()) {
+    //   fx.pause();
+    //   movingVisibility = !movingVisibility;
+    // } else {
+    //   fx.play();
+    //   movingVisibility = !movingVisibility;
+    // }
   } else if (key >= '1' && key <= '5') {
     globalSpeedMultiplier = parseFloat(key) * 0.2;
   } else if (key === 't') {
@@ -307,11 +279,11 @@ function updateMovingVisibility() {
 function displayStatus() {
   fill(255);
 
-  fill(dry.isPlaying() ? 'white' : 'grey');
-  text(`Dry track (z)`, 10, 520);
+  // fill(dry.isPlaying() ? 'white' : 'grey');
+  // text(`Dry track (z)`, 10, 520);
 
-  fill(fx.isPlaying() ? 'white' : 'grey');
-  text(`FX track (x)`, 180, 520);
+  // fill(fx.isPlaying() ? 'white' : 'grey');
+  // text(`FX track (x)`, 180, 520);
 
   let anyXVisible = Object.values(xStatus).some(status => status);
   fill(anyXVisible ? 'white' : 'grey');
@@ -324,9 +296,12 @@ function displayStatus() {
   text(`Settings (t)`, 660, 520);
 }
 
+
+
 function toggleXImages() {
+  // Toggle the visibility of all 'X' images, including the moon
   Object.keys(xStatus).forEach((index) => {
-    xStatus[index] = !xStatus[index];
+    xStatus[index] = !xStatus[index];  // Toggle the status
   });
 }
 
