@@ -7,6 +7,7 @@ varying vec2 vTexCoord;
 uniform sampler2D texture;
 uniform float splitting;
 uniform float hue;
+uniform float saturation; // New uniform to control saturation
 
 vec3 rgb2hsb(vec3 c) {
     vec4 K = vec4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);
@@ -33,10 +34,18 @@ void main() {
     col.g = texture2D(texture, uv).g;
     col.b = texture2D(texture, uv - offset).b;
 
-    //hue
+    // Convert from RGB to HSB
     vec3 hsb = rgb2hsb(col);
+
+    // Adjust the hue
     hsb.x += hue;
     if (hsb.x > 1.0) hsb.x -= 1.0;
+
+    // Adjust the saturation
+    hsb.y *= saturation;
+
+    // Convert back to RGB
     vec3 adjustedColor = hsb2rgb(hsb);
+
     gl_FragColor = vec4(adjustedColor, 1.0);
 }

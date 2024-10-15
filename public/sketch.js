@@ -1,16 +1,19 @@
 /*-------- global variables -------*/
 
-//use physical encoders ?
+//Use physical encoders ?
 let useEncoders = false;
-//associate variables to encoders 0, 1, 2 or 3
+
+//Associate variables to encoders : [effect name, encoder, start value, end value]
 let controls = [
-  ["Clouds Speed", 0],
-  ["Clouds Opacity", 1],
-  ["Bird Speed", 0],
-  ["Bird Altitude", 1],
-  ["Moon Opacity", 2],
-  ["Glitch", 3],
-  ["Hue", 3]
+  ["Clouds Speed", 1, 0.05, 1.0],
+  ["Clouds Opacity", 1, 0, 255],
+  ["Bird Speed", 2, 0.5, 2.0],
+  ["Bird Altitude", 1, 400, 100],
+  ["Moon Opacity", 0, 0, 255],
+  ["Glitch", 3, 0, 1],
+  ["Hue", 0, 0, 0.2],
+  ["Saturation", 1, 1, 0.5],
+  ["Window Lights", 0, 0, 127],
 ];
 
 /*--------------------------------*/
@@ -34,6 +37,8 @@ let movingVisibility = false;
 let cloudTransparency = 0;
 let hueValue = 0;
 let glitchValue = 0;
+let windowLights = 0;
+let previousWindowLights = 0;
 
 let birdFrames = [];
 let birdIndex = 0;
@@ -146,8 +151,6 @@ function setup() {
     // Update global encoderValues array
     encoderValues = newEncoderValues;
   });
-   
-  // let descriptions = ['Clouds Speed', 'Clouds Opacity', 'Bird Speed', 'Bird Altitude', 'Moon Opacity', 'Glitch', 'Hue'];
 
   for (let i = 0; i < controls.length; i++) {
     let slider = createSlider(0, 127, 0).class('slider');
@@ -234,13 +237,41 @@ function draw() {
     }
   }
 
-  cloudSpeedMultiplier = map(sliders[0].value(), 0, 127, 0.01, 1.0);
-  cloudTransparency = map(sliders[1].value(), 0, 127, 0, 255);
-  birdSpeed = map(sliders[2].value(), 0, 127, 0.0, 2.0);
-  birdY = map(sliders[3].value(), 0, 127, 0, height);
-  moonTransparency = map(sliders[4].value(), 0, 127, 0, 255);
-  glitchValue = getNoiseValue(sliders[5].value() / 127);
-  hueValue = map(sliders[6].value(), 0, 127, 0, 0.2);
+  cloudSpeedMultiplier = map(sliders[0].value(), 0, 127, controls[0][2], controls[0][3]);
+  cloudTransparency = map(sliders[1].value(), 0, 127, controls[1][2], controls[1][3]);
+  birdSpeed = map(sliders[2].value(), 0, 127, controls[2][2], controls[2][3]);
+  birdY = map(sliders[3].value(), 0, 127, controls[3][2], controls[3][3]);
+  moonTransparency = map(sliders[4].value(), 0, 127, controls[4][2], controls[4][3]);
+  glitchValue = getNoiseValue(map(sliders[5].value(), 0, 127, controls[5][2], controls[5][3]));
+  hueValue = map(sliders[6].value(), 0, 127, controls[6][2], controls[6][3]);
+  saturationValue = map(sliders[7].value(), 0, 127, controls[7][2], controls[7][3]);
+  windowLights = map(sliders[8].value(), 0, 127, controls[8][2], controls[8][3]);
+
+  if (windowLights > previousWindowLights) {
+    addRandomLights();
+    previousWindowLights = windowLights;
+  }
+  else if (windowLights < previousWindowLights) {
+    if (windowLights === 0) {
+      turnAllLightsOff();
+    }
+    else {
+      removeRandomLights();
+    }
+    previousWindowLights = windowLights;
+  }
+
+  updateMovingVisibility();
+
+  birdAnimationCounter++;
+  if (birdAnimationCounter % birdAnimationSpeed === 0) {
+    birdIndex = (birdIndex + 1) % birdFrames.length;
+  }
+  screen.image(birdFrames[birdIndex], birdX, birdY);
+  birdX -= birdSpeed;
+  if (birdX < -birdFrames[birdIndex].width) {
+    birdX = width;
+  }
 
   images.forEach((item, index) => {
     if (item.type === 'S') {
@@ -260,19 +291,7 @@ function draw() {
     }
   });
 
-  updateMovingVisibility();
-
-  birdAnimationCounter++;
-  if (birdAnimationCounter % birdAnimationSpeed === 0) {
-    birdIndex = (birdIndex + 1) % birdFrames.length;
-  }
-  screen.image(birdFrames[birdIndex], birdX, birdY);
-  birdX -= birdSpeed;
-  if (birdX < -birdFrames[birdIndex].width) {
-    birdX = width;
-  }
-
-  drawScreen(glitchValue, hueValue);
+  drawScreen(glitchValue, hueValue, saturationValue);
 
   if (showSliders) {
     sliders.forEach(slider => slider.show());
@@ -295,10 +314,11 @@ function draw() {
   }
 }
 
-function drawScreen(splittingValue, hueValue) {
+function drawScreen(splittingValue, hueValue, saturationValue) {
   glitchShader.setUniform('texture', screen);
   glitchShader.setUniform('splitting', splittingValue);
   glitchShader.setUniform('hue', hueValue);
+  glitchShader.setUniform('saturation', saturationValue);
   
   rect(-width/2, -height/2, width, height);
 }
@@ -415,6 +435,28 @@ function toggleRandomLights() {
   for (let i = 0; i < numLightsToToggle; i++) {
     let index = random(lightIndices);
     lightStatus[index] = !lightStatus[index];
+  }
+}
+
+function addRandomLights() {
+  const offLights = Object.keys(lightStatus).filter(index => !lightStatus[index]);
+  const numLightsToToggle = floor(random(3));
+  for (let i = 0; i < numLightsToToggle; i++) {
+    if (offLights.length > 0) {
+      let randomOffLight = random(offLights);
+      lightStatus[randomOffLight] = true; // Turn it on
+    }
+  }
+}
+
+function removeRandomLights() {
+  const onLights = Object.keys(lightStatus).filter(index => lightStatus[index]);
+  const numLightsToToggle = floor(random(3));
+  for (let i = 0; i < numLightsToToggle; i++) {
+    if (onLights.length > 0) {
+      let randomOnLight = random(onLights);
+      lightStatus[randomOnLight] = false; // Turn it off
+    }
   }
 }
 
