@@ -22,8 +22,16 @@ SerialPort.list().then(
       console.log(`${port.path} - ${port.manufacturer}`);
     });
 
-    // Establish a serial connection
     const selectedPortPath = '/dev/cu.usbmodem1401';  // Change this to your specific port
+    const portExists = ports.some(port => port.path === selectedPortPath);
+
+    if (!portExists) {
+      console.log('The serial port ${selectedPortPath} is not available. Server will continue without serial communication.');
+      return;
+    }
+
+    // Establish a serial connection
+    console.log(`Attempting to connect to port: ${selectedPortPath}`);
     const port = new SerialPort({ path: selectedPortPath, baudRate: 115200 }, function (err) {
       if (err) {
         return console.log('Error: ', err.message);
@@ -58,6 +66,7 @@ SerialPort.list().then(
   },
   err => {
     console.error('Error listing ports: ', err);
+    console.log('Server will continue without serial communication.');
   }
 );
 
