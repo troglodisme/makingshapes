@@ -15,6 +15,7 @@ let controls = [
   ["Hue", 0, 0, 0.2],
   ["Saturation", 1, 1, 0.5],
   ["Window Lights", 0, 0, 127],
+  ["Rain", 1, 0, 300]
 ];
 
 /*--------------------------------*/
@@ -42,6 +43,7 @@ let windowLights = 0;
 let previousWindowLights = 0;
 let numberOfBirds = 1;
 let previousNumberOfBirds = 1;
+let rainIntensity = 0;
 
 // let birds = [];
 let birdFrames = [];
@@ -49,6 +51,8 @@ let birdSpeed = 0.5;
 let birdY = 0;
 let birdAnimationSpeed = 5;
 let birdFlock;
+
+let rain;
 
 let dry, fx;
 
@@ -135,6 +139,8 @@ function setup() {
 
   birdFlock = new BirdFlock();
   birdFlock.addBird();
+
+  rain = new Rain();
 
    // Connect to the server using socket.io
    socket = io();
@@ -252,6 +258,7 @@ function draw() {
   hueValue = map(sliders[7].value(), 0, 127, controls[7][2], controls[7][3]);
   saturationValue = map(sliders[8].value(), 0, 127, controls[8][2], controls[8][3]);
   windowLights = map(sliders[9].value(), 0, 127, controls[9][2], controls[9][3]);
+  rainIntensity = map(sliders[10].value(), 0, 127, controls[10][2], controls[10][3]);
 
   if (windowLights > previousWindowLights) {
     addRandomLights();
@@ -297,10 +304,8 @@ function draw() {
   });
 
   birdFlock.run();
-  // for (let bird of birds) {
-  //   bird.update();
-  //   bird.display();
-  // }
+  
+  rain.run();
 
   drawScreen(glitchValue, hueValue, saturationValue);
 
@@ -599,6 +604,61 @@ class BirdFlock {
       b.display();
       if (!b.alive && b.x < 0) {
         this.birds.splice(i, 1);
+      }
+    }
+  }
+}
+
+class Raindrop {
+  constructor() {
+    this.x = random(0, width);
+    this.y = random(0, -height);
+    this.length = random(5, 10);
+    this.angle = map(rainIntensity, controls[10][2], controls[10][3], radians(90), radians(60));
+    this.speed = random(5, 10);
+  }
+
+  display() {
+    screen.stroke(255, 255,255, 100);
+    screen.strokeWeight(1);
+    screen.line(this.x, this.y, this.x - this.length * cos(this.angle), this.y - this.length * sin(this.angle));  
+  }
+
+  update() {
+    this.angle = map(rainIntensity, controls[10][2], controls[10][3], radians(90), radians(60));
+    this.x += this.speed * cos(this.angle);
+    this.y += this.speed * sin(this.angle);
+    
+    if (this.y > height || this.x > width) {
+      this.y = random(0, -height);
+      this.x = random(-100, width+100);
+    }
+  }
+}
+
+class Rain {
+  constructor() {
+    this.raindrops = [];
+  }
+
+  run () {
+
+    for (let i = this.raindrops.length - 1; i >= 0; i--) {
+      let b = this.raindrops[i];
+      b.update();
+      b.display();
+    }
+
+    let delta = floor(rainIntensity - this.raindrops.length);
+    if (delta > 0) {
+      for (let i = 0; i < delta; i ++) {
+        this.raindrops.push(new Raindrop());
+      }
+    }
+    else if (delta < 0) {
+      for (let i = 0; i < abs(delta); i++) {
+        let randomIndex = floor(random() * this.raindrops.length);
+        this.raindrops.splice(randomIndex, 1);
       }
     }
   }
