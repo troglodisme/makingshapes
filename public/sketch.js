@@ -9,7 +9,7 @@ let controls = [
   ["Clouds Opacity", 1, 0, 255],
   ["Bird Speed", 2, 0.5, 2.0],
   ["Bird Altitude", 1, 200, 0],
-  ["Number of Birds", 2, 1, 20],
+  ["Nb of Birds", 2, 1, 20],
   ["Moon Opacity", 0, 0, 255],
   ["Glitch", 3, 0, 1],
   ["Hue", 0, 0, 0.2],
@@ -199,7 +199,7 @@ function requestMIDI() {
 }
 
 function positionElements() {
-  let sliderWidth = width/sliders.length;
+  let sliderWidth = 90;
   for (let i = 0; i < sliders.length; i++) {
     select(`#description${i}`).position(10 + i * sliderWidth, height + 10);
     ccSelects[i].position(10 + i * sliderWidth, height + 30);
