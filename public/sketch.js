@@ -8,7 +8,8 @@ let controls = [
   ["Clouds Speed", 1, 0.05, 1.0],
   ["Clouds Opacity", 1, 0, 255],
   ["Bird Speed", 2, 0.5, 2.0],
-  ["Bird Altitude", 1, 400, 100],
+  ["Bird Altitude", 1, 200, 0],
+  ["Number of Birds", 2, 1, 20],
   ["Moon Opacity", 0, 0, 255],
   ["Glitch", 3, 0, 1],
   ["Hue", 0, 0, 0.2],
@@ -39,14 +40,15 @@ let hueValue = 0;
 let glitchValue = 0;
 let windowLights = 0;
 let previousWindowLights = 0;
+let numberOfBirds = 1;
+let previousNumberOfBirds = 1;
 
+// let birds = [];
 let birdFrames = [];
-let birdIndex = 0;
-let birdX = 900;
-let birdY = 250;
 let birdSpeed = 0.5;
+let birdY = 0;
 let birdAnimationSpeed = 5;
-let birdAnimationCounter = 0;
+let birdFlock;
 
 let dry, fx;
 
@@ -130,6 +132,9 @@ function setup() {
 
   screen = createGraphics(width, height);
   toggleXImages();
+
+  birdFlock = new BirdFlock();
+  birdFlock.addBird();
 
    // Connect to the server using socket.io
    socket = io();
@@ -241,11 +246,12 @@ function draw() {
   cloudTransparency = map(sliders[1].value(), 0, 127, controls[1][2], controls[1][3]);
   birdSpeed = map(sliders[2].value(), 0, 127, controls[2][2], controls[2][3]);
   birdY = map(sliders[3].value(), 0, 127, controls[3][2], controls[3][3]);
-  moonTransparency = map(sliders[4].value(), 0, 127, controls[4][2], controls[4][3]);
-  glitchValue = getNoiseValue(map(sliders[5].value(), 0, 127, controls[5][2], controls[5][3]));
-  hueValue = map(sliders[6].value(), 0, 127, controls[6][2], controls[6][3]);
-  saturationValue = map(sliders[7].value(), 0, 127, controls[7][2], controls[7][3]);
-  windowLights = map(sliders[8].value(), 0, 127, controls[8][2], controls[8][3]);
+  numberOfBirds = floor(map(sliders[4].value(), 0, 127, controls[4][2], controls[4][3]));
+  moonTransparency = map(sliders[5].value(), 0, 127, controls[5][2], controls[5][3]);
+  glitchValue = getNoiseValue(map(sliders[6].value(), 0, 127, controls[6][2], controls[6][3]));
+  hueValue = map(sliders[7].value(), 0, 127, controls[7][2], controls[7][3]);
+  saturationValue = map(sliders[8].value(), 0, 127, controls[8][2], controls[8][3]);
+  windowLights = map(sliders[9].value(), 0, 127, controls[9][2], controls[9][3]);
 
   if (windowLights > previousWindowLights) {
     addRandomLights();
@@ -261,17 +267,16 @@ function draw() {
     previousWindowLights = windowLights;
   }
 
-  updateMovingVisibility();
+  if (numberOfBirds > previousNumberOfBirds) {
+    birdFlock.addBird();
+    previousNumberOfBirds = numberOfBirds;
+  }
+  else if (numberOfBirds < birdFlock.birds.length) {
+    birdFlock.removeBird();
+    previousNumberOfBirds = numberOfBirds;
+  }
 
-  birdAnimationCounter++;
-  if (birdAnimationCounter % birdAnimationSpeed === 0) {
-    birdIndex = (birdIndex + 1) % birdFrames.length;
-  }
-  screen.image(birdFrames[birdIndex], birdX, birdY);
-  birdX -= birdSpeed;
-  if (birdX < -birdFrames[birdIndex].width) {
-    birdX = width;
-  }
+  updateMovingVisibility();
 
   images.forEach((item, index) => {
     if (item.type === 'S') {
@@ -290,6 +295,12 @@ function draw() {
       screen.tint(255, 255);
     }
   });
+
+  birdFlock.run();
+  // for (let bird of birds) {
+  //   bird.update();
+  //   bird.display();
+  // }
 
   drawScreen(glitchValue, hueValue, saturationValue);
 
@@ -522,7 +533,73 @@ function handleMIDIMessage(message) {
   }
 }
 
-
 function updateSliderCC(index, cc) {
   midiCCs[index] = parseInt(cc);
+}
+
+class Bird {
+  constructor() {
+    this.x = 820 + random(50);
+    this.yOffset = random(100);
+    this.y = birdY + this.yOffset;
+    this.speed = birdSpeed;
+    this.animationSpeed = birdAnimationSpeed;
+    this.animationCounter = 0;
+    this.frameIndex = 0;
+    this.alive = true;
+  }
+
+  update() {
+    this.y = birdY + this.yOffset;
+    this.speed = birdSpeed;
+
+    this.x -= this.speed;
+    if (this.x < -birdFrames[this.frameIndex].width && this.alive) {
+      this.x = width;
+    }
+
+    this.animationCounter++;
+    if (this.animationCounter % this.animationSpeed === 0) {
+      this.frameIndex = (this.frameIndex + 1) % birdFrames.length;
+    }
+  }
+
+  display() {
+    screen.image(birdFrames[this.frameIndex], this.x, this.y);
+  }
+}
+
+class BirdFlock {
+
+  constructor() {
+    this.birds = [];
+  }
+
+  addBird() {
+    let b = new Bird();
+    this.birds.push(b);
+  }
+
+  removeBird() {
+    if (this.birds.length > 0) {
+      let minXBird = this.birds[0]; 
+      this.birds.forEach((bird) => {
+        if (bird.x < minXBird.x) {
+          minXBird = bird;
+        }
+      });
+      minXBird.alive = false;
+    }
+  }
+
+  run() {
+    for (let i = this.birds.length - 1; i >= 0; i--) {
+      let b = this.birds[i];
+      b.update();
+      b.display();
+      if (!b.alive && b.x < 0) {
+        this.birds.splice(i, 1);
+      }
+    }
+  }
 }
