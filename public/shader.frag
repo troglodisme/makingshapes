@@ -28,7 +28,7 @@ void main() {
     uv.y = 1.0 - uv.y;
 
     // rgb splitting
-    vec2 offset = vec2(splitting * 0.03, 0.0);
+    vec2 offset = vec2(splitting * 0.02, 0.0);
     vec3 col;
     col.r = texture2D(texture, uv + offset).r;
     col.g = texture2D(texture, uv).g;
