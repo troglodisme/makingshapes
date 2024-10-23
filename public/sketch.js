@@ -1,7 +1,7 @@
 /*-------- global variables -------*/
 
 //Use physical encoders ?
-let useEncoders = false;
+let useEncoders = true;
 
 //Associate variables to encoders : [effect name, encoder, start value, end value]
 let controls = [
@@ -23,8 +23,13 @@ let controls = [
 
 let socket; // Socket.io connection
 
+// Variables to hold data from serial
+let switchStates = [0, 0];         // Array for switch states
+let buttonStates = [0, 0, 0, 0];   // Array for button states
+let encoderValues = [0, 0, 0, 0];  // Array for encoder values
+let matrixStates = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]; // Array for matrix states
+
 // Encoders
-let encoderValues = [0, 0, 0, 0];  // Array to hold 4 encoder values
 let previousEncoderValues = [0, 0, 0, 0];  // To track previous encoder values
 let previousEncoderSlidersValues = [];
 
@@ -145,23 +150,42 @@ function setup() {
    // Connect to the server using socket.io
    socket = io();
 
-   socket.on('encoderData', function(data) {
-    let newEncoderValues = [data.value1, data.value2, data.value3, data.value4];
+
+   socket.on('serialData', function(data) {
+
+    // let newEncoderValues = [data.value1, data.value2, data.value3, data.value4];
+
+    // Update global arrays with the received serial data
+    switchStates = data.switchStates;
+    buttonStates = data.buttonStates;
+    let newEncoderValues = data.encoderValues; // Extract encoder values
+    matrixStates = data.matrixStates;
   
-    // Iterate through each encoder value and send MIDI CC if the value has changed
+    // 1. Iterate through each encoder value and send MIDI CC if the value has changed
     newEncoderValues.forEach((newValue, index) => {
       if (newValue !== previousEncoderValues[index]) {
         // Send a MIDI CC message for the changed encoder using the assigned CC number from midiCCs
-        sendMIDICC(midiCCs[index], map(newValue, 0, 127, 0, 127));  // CC range 0-127
+        sendMIDICC(midiCCs[index], map(newValue, 0, 127, 0, 127));  // Map and send MIDI value
   
         // Update the previous value for that encoder
         previousEncoderValues[index] = newValue;
       }
     });
   
-    // Update global encoderValues array
+    // 2. Update the global encoderValues array (used by the UI)
     encoderValues = newEncoderValues;
+  
+    // 3. Print to the console to verify that data is being updated
+    console.log('Received Serial Data:');
+    console.log('Switch States:', switchStates);
+    console.log('Button States:', buttonStates);
+    console.log('Encoder Values:', encoderValues);
+    console.log('Matrix States:', matrixStates);
   });
+  
+
+  
+ 
 
   for (let i = 0; i < controls.length; i++) {
     let slider = createSlider(0, 127, 0).class('slider');
@@ -226,12 +250,16 @@ function positionElements() {
 
 function draw() {
  
+  // Print encoder values to verify they are updating
+
   if (useEncoders) {
     for (let i = 0; i < encoderSliders.length; i++) {
       encoderSliders[i].value(encoderValues[i]);
     }
     console.log('encoder 1 : ' + encoderValues[0] + ', encoder 2 : ' + encoderValues[1] + ', encoder 3 : ' + encoderValues[2] +  ', encoder 4 : '  + encoderValues[3] )
   }
+
+  
 
   let encoderChanged = false;
   for (let i = 0; i < encoderSliders.length; i++) {
