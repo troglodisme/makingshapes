@@ -1,28 +1,28 @@
-Get started:
+# Making Shapes 
 
-- Install node.js from node.js website https://nodejs.org/
+A p5.js project to display animations and make music. 
 
-- Verify installation
+Hardware: 
 
-node -v
-npm -v
+- rasberry pi 5
+- esp32-c6 sparkfun
+- 4 adafruit encoders stemma
+- 1 trellis 4x4 matrix
+- 2 switches
+- 5'' display
 
-- Install packages
+Node Packages:
 
-npm init -y
-npm install express
-npm install nodemon (optional)
-
-- Check instals
-
-npm list
-
-You should express express@4.21.1 (or similar version)
-
-- Run the app
-
-npm start (or use node server.js if your package is not updated)
+- express
+- serialport
+- socket.io
+- webmidi
+- nodemon (as a dev dependency)
 
 
+# Get started:
 
----> Remember to change   your serial port in server.js ! 
+- Install node and npm
+- install packages: npm install
+- start the project: npm start
+- (or "node server.js" if nodemon is not working)
