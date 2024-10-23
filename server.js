@@ -10,9 +10,7 @@ const io = new Server(server);  // Initialize socket.io
 const portNumber = 3000;
 app.use(express.static('public'));
 
-const {WebMidi} = require("webmidi");
-
-
+const { WebMidi } = require("webmidi");
 
 // List available serial ports
 SerialPort.list().then(
@@ -22,11 +20,11 @@ SerialPort.list().then(
       console.log(`${port.path} - ${port.manufacturer}`);
     });
 
-    const selectedPortPath = '/dev/cu.usbmodem1401';  // Change this to your specific port
+    const selectedPortPath = '/dev/tty.usbmodem21401';  // Change this to your specific port
     const portExists = ports.some(port => port.path === selectedPortPath);
 
     if (!portExists) {
-      console.log('The serial port ${selectedPortPath} is not available. Server will continue without serial communication.');
+      console.log(`The serial port ${selectedPortPath} is not available. Server will continue without serial communication.`);
       return;
     }
 
@@ -50,17 +48,36 @@ SerialPort.list().then(
     port.pipe(parser);
 
     parser.on('data', function (line) {
-      // console.log('Raw line:', line);
-      const match = line.match(/\[([0-9, ]+)\]/);  // Match array inside the square brackets
-      if (match) {
-        const values = match[1].split(',').map(Number);  // Split and convert values to numbers
-        if (values.length === 4) {
-          const [value1, value2, value3, value4] = values;
-          console.log(`Encoder 1: ${value1}, Encoder 2: ${value2}, Encoder 3: ${value3}, Encoder 4: ${value4}`);
-          
-          // Emit encoder values to the front end
-          io.emit('encoderData', { value1, value2, value3, value4 });
+      // Expecting single line output from Arduino, split by ';'
+      try {
+        line = line.trim();  // Remove any trailing whitespace
+
+        // Matching the pattern "key = [value1, value2, ...];"
+        const parts = line.match(/switchStates\s*=\s*\[.*?\];|buttonStates\s*=\s*\[.*?\];|encoderValues\s*=\s*\[.*?\];|matrixStates\s*=\s*\[.*?\];/g);
+
+        if (parts && parts.length === 4) {
+          const switchStates = parts[0].match(/\d+/g).map(Number);  // Extract digits and convert to numbers
+          const buttonStates = parts[1].match(/\d+/g).map(Number);
+          const encoderValues = parts[2].match(/\d+/g).map(Number);
+          const matrixStates = parts[3].match(/\d+/g).map(Number);
+
+          console.log(`Switch States: ${switchStates}`);
+          console.log(`Button States: ${buttonStates}`);
+          console.log(`Encoder Values: ${encoderValues}`);
+          console.log(`Matrix States: ${matrixStates}`);
+
+          // Emit all data to the front end
+          io.emit('serialData', {
+            switchStates,
+            buttonStates,
+            encoderValues,
+            matrixStates
+          });
+        } else {
+          console.log('Unexpected data format:', line);
         }
+      } catch (error) {
+        console.log('Error parsing incoming data:', error);
       }
     });
   },
@@ -82,7 +99,6 @@ io.on('connection', (socket) => {
 server.listen(portNumber, () => {
   console.log(`Server is running on port ${portNumber}`);
 });
-
 
 //webmidi
 
