@@ -134,31 +134,60 @@ void loop() {
   readEncoder(ss3, encoder_position3, encoder_value3);
   readEncoder(ss4, encoder_position4, encoder_value4);
 
-  // Print switch states, encoder button states, encoder values, and Trellis button states
-  Serial.print("switchStates = [");
-  Serial.print(switchStates[0]); Serial.print(", ");
-  Serial.print(switchStates[1]); Serial.println("]");
+  // multi line serial
 
-  Serial.print("buttonStates = [");
-  Serial.print(button_state1); Serial.print(", ");
-  Serial.print(button_state2); Serial.print(", ");
-  Serial.print(button_state3); Serial.print(", ");
-  Serial.print(button_state4); Serial.println("]");
+  // Serial.print("switchStates = [");
+  // Serial.print(switchStates[0]); Serial.print(", ");
+  // Serial.print(switchStates[1]); Serial.println("]");
 
-  Serial.print("encoderValues = [");
-  Serial.print(encoder_value1); Serial.print(", ");
-  Serial.print(encoder_value2); Serial.print(", ");
-  Serial.print(encoder_value3); Serial.print(", ");
-  Serial.print(encoder_value4); Serial.println("]");
+  // Serial.print("buttonStates = [");
+  // Serial.print(button_state1); Serial.print(", ");
+  // Serial.print(button_state2); Serial.print(", ");
+  // Serial.print(button_state3); Serial.print(", ");
+  // Serial.print(button_state4); Serial.println("]");
 
-  Serial.print("matrixStates = [");
-  for (uint8_t i = 0; i < numKeys; i++) {
-    Serial.print(matrixStates[i]);
-    if (i < numKeys - 1) {
-      Serial.print(", ");
-    }
+  // Serial.print("encoderValues = [");
+  // Serial.print(encoder_value1); Serial.print(", ");
+  // Serial.print(encoder_value2); Serial.print(", ");
+  // Serial.print(encoder_value3); Serial.print(", ");
+  // Serial.print(encoder_value4); Serial.println("]");
+
+  // Serial.print("matrixStates = [");
+  // for (uint8_t i = 0; i < numKeys; i++) {
+  //   Serial.print(matrixStates[i]);
+  //   if (i < numKeys - 1) {
+  //     Serial.print(", ");
+  //   }
+  // }
+  // Serial.println("]");
+
+
+// single line serial
+Serial.print("switchStates = [");
+Serial.print(switchStates[0]); Serial.print(", ");
+Serial.print(switchStates[1]); Serial.print("];");
+
+Serial.print("buttonStates = [");
+Serial.print(button_state1); Serial.print(", ");
+Serial.print(button_state2); Serial.print(", ");
+Serial.print(button_state3); Serial.print(", ");
+Serial.print(button_state4); Serial.print("];");
+
+Serial.print("encoderValues = [");
+Serial.print(encoder_value1); Serial.print(", ");
+Serial.print(encoder_value2); Serial.print(", ");
+Serial.print(encoder_value3); Serial.print(", ");
+Serial.print(encoder_value4); Serial.print("];");
+
+Serial.print("matrixStates = [");
+for (uint8_t i = 0; i < numKeys; i++) {
+  Serial.print(matrixStates[i]);
+  if (i < numKeys - 1) {
+    Serial.print(", ");
   }
-  Serial.println("]");
+}
+Serial.println("];");
+
 
   delay(25);  // Adjust delay as necessary
 }
