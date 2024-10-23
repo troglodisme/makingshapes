@@ -29,6 +29,12 @@ let buttonStates = [0, 0, 0, 0];   // Array for button states
 let encoderValues = [0, 0, 0, 0];  // Array for encoder values
 let matrixStates = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]; // Array for matrix states
 
+// Define MIDI note numbers for the matrix states
+// let matrixNotes = [60, 62, 64, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75];  //tonal
+
+let matrixNotes = [60, 62, 64, 65, 67, 69, 71, 72, 74, 76, 77, 79, 81, 83, 84, 86];  // just C Major
+
+
 // Encoders
 let previousEncoderValues = [0, 0, 0, 0];  // To track previous encoder values
 let previousEncoderSlidersValues = [];
@@ -153,14 +159,12 @@ function setup() {
 
    socket.on('serialData', function(data) {
 
-    // let newEncoderValues = [data.value1, data.value2, data.value3, data.value4];
-
     // Update global arrays with the received serial data
     switchStates = data.switchStates;
     buttonStates = data.buttonStates;
-    let newEncoderValues = data.encoderValues; // Extract encoder values
-    matrixStates = data.matrixStates;
-  
+    let newEncoderValues = data.encoderValues;  // Extract encoder values
+    let newMatrixStates = data.matrixStates;    // Extract matrix states
+    
     // 1. Iterate through each encoder value and send MIDI CC if the value has changed
     newEncoderValues.forEach((newValue, index) => {
       if (newValue !== previousEncoderValues[index]) {
@@ -172,16 +176,33 @@ function setup() {
       }
     });
   
-    // 2. Update the global encoderValues array (used by the UI)
+    // 2. Send MIDI note messages for matrix states
+    newMatrixStates.forEach((newState, index) => {
+      if (newState !== matrixStates[index]) {
+        if (newState === 1) {
+          // Send MIDI note ON message for the corresponding note
+          sendMIDINoteOn(matrixNotes[index]);
+        } else {
+          // Send MIDI note OFF message for the corresponding note
+          sendMIDINoteOff(matrixNotes[index]);
+        }
+        
+        // Update the matrix state
+        matrixStates[index] = newState;
+      }
+    });
+  
+    // 3. Update the global encoderValues array (used by the UI)
     encoderValues = newEncoderValues;
   
-    // 3. Print to the console to verify that data is being updated
+    // Print to the console to verify that data is being updated
     console.log('Received Serial Data:');
     console.log('Switch States:', switchStates);
     console.log('Button States:', buttonStates);
     console.log('Encoder Values:', encoderValues);
     console.log('Matrix States:', matrixStates);
   });
+  
   
 
   
@@ -386,6 +407,25 @@ function sendMIDICC(controller, value) {
     midiOutput.send([status, controller, value]);  // Send CC message
   }
 }
+
+function sendMIDINoteOn(note) {
+  if (midiOutput) {  // Ensure an output is selected
+    let status = 0x90;  // Note On message (0x90 is for note on)
+    let velocity = 127; // Maximum velocity
+    midiOutput.send([status, note, velocity]);  // Send Note On
+    console.log(`MIDI Note ON: ${note}`);
+  }
+}
+
+function sendMIDINoteOff(note) {
+  if (midiOutput) {  // Ensure an output is selected
+    let status = 0x80;  // Note Off message (0x80 is for note off)
+    let velocity = 0;   // No velocity for note off
+    midiOutput.send([status, note, velocity]);  // Send Note Off
+    console.log(`MIDI Note OFF: ${note}`);
+  }
+}
+
 
 
 function keyPressed() {
