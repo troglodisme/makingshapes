@@ -24,6 +24,10 @@ canvas {
   margin: 5px;
 }
 
+.encoder-select {
+  margin: 5px;
+}
+
 .slider-description {
   font-size: 14px;
   color: white;

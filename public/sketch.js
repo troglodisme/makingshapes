@@ -85,6 +85,8 @@ let ccSelects = [];
 let midiOutputSelect;  
 let midiOutputs = [];
 
+let encoderSelects = [];
+
 let moonTransparency = 255;
 
 //webgl
@@ -220,6 +222,12 @@ function setup() {
   
  
 
+  for (let i=0; i < encoderValues.length; i++) {
+    let encoderSlider = createSlider(0, 127, 0).class('slider');
+    encoderSliders.push(encoderSlider);
+    previousEncoderSlidersValues[i] = encoderSliders[i].value();
+  }
+
   for (let i = 0; i < controls.length; i++) {
     let slider = createSlider(0, 127, 0).class('slider');
     sliders.push(slider);
@@ -232,13 +240,16 @@ function setup() {
     ccSelect.changed(() => updateSliderCC(i, ccSelect.value()));
     ccSelects.push(ccSelect);
 
-    description = createP(controls[i][0]).class('slider-description').id(`description${i}`);
-  }
+    let encoderSelect = createSelect().class('encoder-select');
+    for (let j = 0; j < encoderSliders.length; j++) {
+      encoderSelect.option(`Enc. ${j}`, j);
+    }
+    encoderSelect.option(`None`, encoderSliders.length);
+    encoderSelect.selected(controls[i][1]);
+    encoderSelect.changed(() => updateEncoderSelect(i, encoderSelect.value()));
+    encoderSelects.push(encoderSelect);
 
-  for (let i=0; i < encoderValues.length; i++) {
-    let encoderSlider = createSlider(0, 127, 0).class('slider');
-    encoderSliders.push(encoderSlider);
-    previousEncoderSlidersValues[i] = encoderSliders[i].value();
+    description = createP(controls[i][0]).class('slider-description').id(`description${i}`);
   }
 
   midiInputSelect = createSelect().class('cc-select');
@@ -266,16 +277,17 @@ function positionElements() {
   for (let i = 0; i < sliders.length; i++) {
     select(`#description${i}`).position(10 + i * sliderWidth, height + 10);
     ccSelects[i].position(10 + i * sliderWidth, height + 30);
-    sliders[i].position(10 + i * sliderWidth, height + 60);
+    encoderSelects[i].position(10 + i * sliderWidth, height + 60);
+    sliders[i].position(10 + i * sliderWidth, height + 90);
     sliders[i].size(sliderWidth - 10);
   }
-  midiInputSelect.position(10, height + 100);
-  midiOutputSelect.position(150, height + 100);
+  midiInputSelect.position(10, height + 130);
+  midiOutputSelect.position(150, height + 130);
   for (let i = 0; i < encoderSliders.length; i++) {
     let encoderName = "Encoder " + i;
     let encoderDescription = createP(encoderName).class('slider-description').id(`encoderDescription${i}`);
-    encoderDescription.position(10 + i * sliderWidth, height + 140);
-    encoderSliders[i].position(10 + i * sliderWidth, height + 160);
+    encoderDescription.position(10 + i * sliderWidth, height + 170);
+    encoderSliders[i].position(10 + i * sliderWidth, height + 190);
     encoderSliders[i].size(sliderWidth - 10);
   }
 
@@ -301,8 +313,7 @@ function draw() {
   }
   
   for (let i = 0; i < sliders.length; i++) {
-    if (encoderChanged) {
-      console.log(i + ' encoder ' + controls[i][1]);
+    if (encoderChanged && controls[i][1] < encoderSliders.length) {
       sliders[i].value(encoderSliders[controls[i][1]].value());
     }
   }
@@ -371,6 +382,7 @@ function draw() {
   if (showSliders) {
     sliders.forEach(slider => slider.show());
     ccSelects.forEach(select => select.show());
+    encoderSelects.forEach(select => select.show());
     encoderSliders.forEach(slider => slider.show());
     for (let i = 0; i < sliders.length; i++) {
       select(`#description${i}`).show();
@@ -380,6 +392,7 @@ function draw() {
   } else {
     sliders.forEach(slider => slider.hide());
     ccSelects.forEach(select => select.hide());
+    encoderSelects.forEach(select => select.hide());
     encoderSliders.forEach(slider => slider.hide());
     for (let i = 0; i < sliders.length; i++) {
       select(`#description${i}`).hide();
@@ -623,6 +636,15 @@ function updateSliderCC(index, cc) {
   midiCCs[index] = parseInt(cc);
 }
 
+function updateEncoderSelect(index, encoder) {
+  if (encoder < encoderSliders.length) {
+    controls[index][1] = parseInt(encoder);
+  }
+  else {
+    controls[index][1] = encoderSliders.length;
+  }
+}
+
 class Bird {
   constructor() {
     this.x = 820 + random(50);
@@ -695,18 +717,23 @@ class Raindrop {
     this.x = random(0, width);
     this.y = random(0, -height);
     this.length = random(5, 10);
-    this.angle = map(rainIntensity, controls[10][2], controls[10][3], radians(90), radians(60));
-    this.speed = random(5, 10);
+    this.angle = map(rainIntensity, controls[10][2], controls[10][3], radians(65), radians(90));
+    this.speed = random(4, 8);
   }
 
   display() {
-    screen.stroke(255, 255,255, 100);
+    screen.stroke(255, 255,255, 80);
     screen.strokeWeight(1);
     screen.line(this.x, this.y, this.x - this.length * cos(this.angle), this.y - this.length * sin(this.angle));  
   }
 
   update() {
-    this.angle = map(rainIntensity, controls[10][2], controls[10][3], radians(90), radians(60));
+    if (controls[10][2] < controls[10][3]) {
+      this.angle = map(rainIntensity, controls[10][2], controls[10][3], radians(90), radians(65));
+    }
+    else {
+      this.angle = map(rainIntensity, controls[10][2], controls[10][3], radians(65), radians(90));
+    }
     this.x += this.speed * cos(this.angle);
     this.y += this.speed * sin(this.angle);
     
