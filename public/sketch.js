@@ -1,7 +1,7 @@
 /*-------- global variables -------*/
 
 //Use physical encoders ?
-let useEncoders = true;
+let useEncoders = false;
 
 //Associate variables to encoders : [effect name, encoder, start value, end value]
 let controls = [
